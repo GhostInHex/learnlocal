@@ -1,1 +1,1 @@
-{"redirects":[{"destination":"https://youtu.be/f-B5_dlQLZ0","permanent":false,"source":"/video"},{"destination":"https://youtu.be/f-B5_dlQLZ0","permanent":false,"source":"/youtube"}],"rewrites":[{"destination":"https://learnlocal-api.onrender.com/api/:path*","source":"/api/:path*"}]}
+{"redirects":[{"destination":"https://youtu.be/4BiS0joJGyk","permanent":false,"source":"/video"},{"destination":"https://youtu.be/4BiS0joJGyk","permanent":false,"source":"/youtube"}],"rewrites":[{"destination":"https://learnlocal-api.onrender.com/api/:path*","source":"/api/:path*"}]}
