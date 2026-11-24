@@ -1,1 +1,1 @@
-{"redirects":[{"destination":"https://learnlocal-psi.vercel.app/","permanent":false,"source":"/video"}],"rewrites":[{"destination":"https://learnlocal-api.onrender.com/api/:path*","source":"/api/:path*"}]}
+{"redirects":[{"destination":"https://learnlocal-psi.vercel.app/","permanent":false,"source":"/video"},{"destination":"https://learnlocal-psi.vercel.app/","permanent":false,"source":"/youtube"}],"rewrites":[{"destination":"https://learnlocal-api.onrender.com/api/:path*","source":"/api/:path*"}]}
