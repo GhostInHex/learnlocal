@@ -428,3 +428,126 @@ h3 svg {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- Product tour ---- */
+.product-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+}
+
+.product-tour-backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.product-tour-spotlight {
+  position: fixed;
+  border-radius: 14px;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(24, 15, 8, 0.58);
+  pointer-events: none;
+  transition:
+    top 0.45s ease,
+    left 0.45s ease,
+    width 0.45s ease,
+    height 0.45s ease;
+}
+
+.product-tour-tooltip {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  z-index: 3001;
+  outline: none;
+  transition:
+    top 0.45s ease,
+    left 0.45s ease;
+}
+
+.product-tour-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.product-tour-title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.product-tour-content {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.product-tour-progress {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin: 14px 0 12px;
+}
+
+.product-tour-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.product-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.product-tour-nav {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.product-tour-skip {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 6px;
+}
+
+.product-tour-btn {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.product-tour-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}

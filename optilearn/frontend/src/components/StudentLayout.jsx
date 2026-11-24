@@ -276,16 +276,20 @@ function Sidebar({ studentId, student, onNavigate }) {
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }} aria-label="Main sections">
-        <NavGroupLabel>Learn</NavGroupLabel>
-        {primaryLinks.map(({ route, end, label, Icon, key }) => (
-          <NavButton key={key} to={route} end={end} label={label} Icon={Icon} onClick={onNavigate} />
-        ))}
+        <div data-tour="student-learn" style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <NavGroupLabel>Learn</NavGroupLabel>
+          {primaryLinks.map(({ route, end, label, Icon, key }) => (
+            <NavButton key={key} to={route} end={end} label={label} Icon={Icon} onClick={onNavigate} />
+          ))}
+        </div>
 
-        <NavGroupLabel>Tools</NavGroupLabel>
-        {EXTRA_ITEMS.map(({ suffix, label, Icon }) => (
-          <NavButton key={suffix} to={`/student/${studentId}${suffix}`} label={label} Icon={Icon} onClick={onNavigate} />
-        ))}
-        <NavButton to={LIVE_QUIZ_ITEM.to} label={LIVE_QUIZ_ITEM.label} Icon={LIVE_QUIZ_ITEM.Icon} onClick={onNavigate} />
+        <div data-tour="student-tools" style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <NavGroupLabel>Tools</NavGroupLabel>
+          {EXTRA_ITEMS.map(({ suffix, label, Icon }) => (
+            <NavButton key={suffix} to={`/student/${studentId}${suffix}`} label={label} Icon={Icon} onClick={onNavigate} />
+          ))}
+          <NavButton to={LIVE_QUIZ_ITEM.to} label={LIVE_QUIZ_ITEM.label} Icon={LIVE_QUIZ_ITEM.Icon} onClick={onNavigate} />
+        </div>
       </nav>
 
       <div style={{ marginTop: 'auto', display: 'grid', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 14 }}>

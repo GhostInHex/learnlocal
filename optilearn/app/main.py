@@ -223,6 +223,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _ensure_noto_fonts()
     _ensure_ssl_cert()
     await db.init_db()
+    if settings.SEED_DEMO:
+        try:
+            from app.services.demo_seed import seed_demo_data
+
+            await seed_demo_data()
+        except Exception as exc:
+            logger.warning("Demo seeding skipped: {}", exc)
     hotspot_ip = get_cached_hotspot_ip()
     server_url = get_server_url()
     logger.info("Server accessible at: {}", server_url)
@@ -412,6 +419,15 @@ async def health() -> dict:
             ),
         },
         "version": "1.0.0",
+        "demo_mode": bool(settings.SEED_DEMO),
+        **(
+            {
+                "demo_teacher": {"username": "teacher", "password": "LearnLocalDemo1"},
+                "demo_student": {"username": "asha", "pin": "1111"},
+            }
+            if settings.SEED_DEMO
+            else {}
+        ),
     }
 
 # ── Frontend static build ──────────────────────────────────────

@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # Model backend
     USE_LOCAL_OLLAMA: bool = True
 
+    # Demo seeding (hosted demo only). When true, startup seeds a demo
+    # teacher, demo students, materials, a quiz and progress data, and
+    # /api/health advertises the public demo credentials. Keep false on
+    # real classroom installs.
+    SEED_DEMO: bool = False
+
     # Gemini API (online fallback when USE_LOCAL_OLLAMA=false and internet available)
     GEMMA_API_KEY: str = ""
     GEMINI_MODEL: str = "gemma-4-31b-it"

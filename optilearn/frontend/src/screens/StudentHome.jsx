@@ -10,6 +10,40 @@ import {
   Sparkle,
 } from '@phosphor-icons/react'
 import { getStudentProgress, getSubjects, listStudentQuizzes } from '../api/client'
+import { ProductTour, useProductTour } from '../components/ProductTour'
+
+const STUDENT_TOUR_STEPS = [
+  {
+    target: null,
+    title: 'Welcome to your learning space',
+    content: 'This is your home for learning. This short tour shows you where everything lives. Press Esc at any time to leave the tour.',
+    placement: 'center',
+  },
+  {
+    target: '[data-tour="student-learn"]',
+    title: 'Learn',
+    content: 'These pages are for your learning: your home, your courses, your work, your progress, your week and class news.',
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="student-tools"]',
+    title: 'Tools to help you',
+    content: 'Study Help, Translate to Learn and Listen Live are here when you would like extra support, along with live quizzes with your class.',
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="student-progress"]',
+    title: 'See how you are growing',
+    content: 'This band shows your subjects, your tasks, your understanding and your level. It grows a little more each time you learn.',
+    placement: 'bottom',
+  },
+  {
+    target: null,
+    title: 'You are ready',
+    content: 'Tap any card to begin. You can watch this tour again any time with the Replay tour button on this page.',
+    placement: 'center',
+  },
+]
 
 function SummaryCell({ label, value }) {
   return (
@@ -70,6 +104,11 @@ function ExploreRow({ to, Icon, label, hint }) {
 
 export default function StudentHome() {
   const { student, studentId } = useOutletContext()
+  const tour = useProductTour(STUDENT_TOUR_STEPS, {
+    storageKey: 'learnlocal_tour_seen_student',
+    autoStart: true,
+    autoStartDelay: 900,
+  })
   const { data: subjects = [] } = useQuery({ queryKey: ['subjects'], queryFn: getSubjects })
   const { data: progress } = useQuery({ queryKey: ['student-progress', studentId], queryFn: () => getStudentProgress(studentId) })
   const { data: quizzes = [] } = useQuery({
@@ -117,14 +156,21 @@ export default function StudentHome() {
               Tap a card below to visit each part of your learning.
             </div>
           </div>
-          <Link to={`/session/${studentId}`} className="pill-button primary" style={{ fontWeight: 700 }}>
-            <ChatsCircle size={18} weight="duotone" />
-            <span>Ask the AI Tutor</span>
-          </Link>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button type="button" onClick={tour.start} className="pill-button" style={{ fontWeight: 700 }}>
+              <Sparkle size={18} weight="duotone" />
+              <span>Replay tour</span>
+            </button>
+            <Link to={`/session/${studentId}`} className="pill-button primary" style={{ fontWeight: 700 }}>
+              <ChatsCircle size={18} weight="duotone" />
+              <span>Ask the AI Tutor</span>
+            </Link>
+          </div>
         </div>
       </header>
 
       <div
+        data-tour="student-progress"
         className="surface-card"
         style={{
           display: 'grid',
@@ -160,7 +206,7 @@ export default function StudentHome() {
         <ExploreRow to={`/student/${studentId}/calendar`} Icon={CalendarDots} label="Calendar" hint="See what is coming up" />
       </div>
 
-      <div>
+      <div data-tour="student-courses">
         <div
           style={{
             fontSize: '0.72rem',
@@ -204,6 +250,7 @@ export default function StudentHome() {
           </div>
         )}
       </div>
+      <ProductTour {...tour.props} />
     </section>
   )
 }

@@ -30,6 +30,7 @@ import Spinner from '../components/Spinner'
 import LanguageSelect from '../components/LanguageSelect'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
+import { ProductTour, useProductTour } from '../components/ProductTour'
 import MaterialUpload from './MaterialUpload'
 import TeacherQuizBuilder from './TeacherQuizBuilder'
 import DiagnosticsPanel from './DiagnosticsPanel'
@@ -1187,10 +1188,66 @@ function AdminManagement({ currentTeacher, allLanguages = [], isMobile = false }
 
 // ── Main component ───────────────────────────────────────────────
 
+const TEACHER_TOUR_STEPS = [
+  {
+    target: null,
+    title: 'Welcome to LearnLocal',
+    content: 'This is your classroom home. This tour takes about 30 seconds and shows the things you will use every day. Press Esc at any time to leave the tour.',
+    placement: 'center',
+  },
+  {
+    target: '[data-tour="teacher-glance"]',
+    title: 'Class at a Glance',
+    content: 'How many students are in your class, how many could use a check-in, and how many topics you have covered so far.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="teacher-topics"]',
+    title: 'How Each Topic Is Landing',
+    content: 'Each square is one student and one topic. Greener means the idea has landed well. Paler squares show where a little more practice will help.',
+    placement: 'top',
+  },
+  {
+    target: '[data-tour="teacher-nav-materials"]',
+    title: 'Teaching Materials',
+    content: 'Add PDFs, pictures and notes here. Your class can open them straight away, and the tutor can draw on them during lessons.',
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="teacher-nav-quiz"]',
+    title: 'Build a Quiz',
+    content: 'Make short quizzes for your class and share them with everyone, or just with a few students.',
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="teacher-nav-access"]',
+    title: 'Student Access',
+    content: 'Your QR code and class link live here. Students scan the code or open the link, type their PIN, and they are in.',
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="teacher-nav-people"]',
+    title: 'People',
+    content: 'Add teachers and students here, and help anyone who has forgotten their PIN.',
+    placement: 'right',
+  },
+  {
+    target: null,
+    title: 'You are all set',
+    content: 'That is the whole tour. You can replay it any time with the Replay tour button at the top of this page.',
+    placement: 'center',
+  },
+]
+
 export default function TeacherDashboard({ initialView = 'overview' }) {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
   const { teacher, clearTeacher } = useAuth()
+  const tour = useProductTour(TEACHER_TOUR_STEPS, {
+    storageKey: 'learnlocal_tour_seen_teacher',
+    autoStart: true,
+    autoStartDelay: 1100,
+  })
   const [view, setView] = useState(initialView)
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [materialSearch, setMaterialSearch] = useState('')
@@ -1525,11 +1582,11 @@ export default function TeacherDashboard({ initialView = 'overview' }) {
             <NetworkStatusPill variant="inline" fullWidth dropdownAlign="left" />
             <div style={{ display: 'grid', gap: 3 }}>
               <button type="button" onClick={() => { setView('overview'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'overview')}><span style={sidebarIconStyle}><Student size={22} weight="duotone" /></span><span>Class Overview</span></button>
-              {teacher?.is_admin && (<button type="button" onClick={() => { setView('manage'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'manage')}><span style={sidebarIconStyle}><ShieldCheck size={22} weight="duotone" /></span><span>People</span></button>)}
+              {teacher?.is_admin && (<button type="button" data-tour="teacher-nav-people" onClick={() => { setView('manage'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'manage')}><span style={sidebarIconStyle}><ShieldCheck size={22} weight="duotone" /></span><span>People</span></button>)}
               {teacher?.is_admin && (<button type="button" onClick={() => { setView('diagnostics'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'diagnostics')}><span style={sidebarIconStyle}><ClipboardText size={22} weight="duotone" /></span><span>System Health</span></button>)}
-              <button type="button" onClick={() => { setView('connect'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'connect')}><span style={sidebarIconStyle}><WifiHigh size={22} weight="duotone" /></span><span>Student Access</span></button>
-              <button type="button" onClick={() => { setView('materials'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'materials')}><span style={sidebarIconStyle}><UploadSimple size={22} weight="duotone" /></span><span>Teaching Materials</span></button>
-              <button type="button" onClick={() => { setView('quiz-builder'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'quiz-builder')}><span style={sidebarIconStyle}><Plus size={22} weight="duotone" /></span><span>Build a Quiz</span></button>
+              <button type="button" data-tour="teacher-nav-access" onClick={() => { setView('connect'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'connect')}><span style={sidebarIconStyle}><WifiHigh size={22} weight="duotone" /></span><span>Student Access</span></button>
+              <button type="button" data-tour="teacher-nav-materials" onClick={() => { setView('materials'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'materials')}><span style={sidebarIconStyle}><UploadSimple size={22} weight="duotone" /></span><span>Teaching Materials</span></button>
+              <button type="button" data-tour="teacher-nav-quiz" onClick={() => { setView('quiz-builder'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'quiz-builder')}><span style={sidebarIconStyle}><Plus size={22} weight="duotone" /></span><span>Build a Quiz</span></button>
               <button type="button" onClick={() => { setView('live-class'); setMenuOpen(false); }} style={sidebarNavStyle(view === 'live-class')}><span style={sidebarIconStyle}><Radio size={22} weight="duotone" /></span><span>Teach Live</span></button>
               <button type="button" onClick={() => { setCalendarOpen(true); setMenuOpen(false); }} style={sidebarNavStyle(false)}><span style={sidebarIconStyle}><CalendarDots size={22} weight="duotone" /></span><span>Plan a Lesson</span></button>
               <div style={sidebarSectionStyle}>
@@ -1572,11 +1629,11 @@ export default function TeacherDashboard({ initialView = 'overview' }) {
             <NetworkStatusPill variant="inline" fullWidth dropdownAlign="left" />
             <div style={{ display: 'grid', gap: 3 }}>
             <button type="button" onClick={() => setView('overview')} style={sidebarNavStyle(view === 'overview')}><span style={sidebarIconStyle}><Student size={22} weight="duotone" /></span><span>Class Overview</span></button>
-              {teacher?.is_admin && (<button type="button" onClick={() => setView('manage')} style={sidebarNavStyle(view === 'manage')}><span style={sidebarIconStyle}><ShieldCheck size={22} weight="duotone" /></span><span>People</span></button>)}
+              {teacher?.is_admin && (<button type="button" data-tour="teacher-nav-people" onClick={() => setView('manage')} style={sidebarNavStyle(view === 'manage')}><span style={sidebarIconStyle}><ShieldCheck size={22} weight="duotone" /></span><span>People</span></button>)}
               {teacher?.is_admin && (<button type="button" onClick={() => setView('diagnostics')} style={sidebarNavStyle(view === 'diagnostics')}><span style={sidebarIconStyle}><ClipboardText size={22} weight="duotone" /></span><span>System Health</span></button>)}
-              <button type="button" onClick={() => setView('connect')} style={sidebarNavStyle(view === 'connect')}><span style={sidebarIconStyle}><WifiHigh size={22} weight="duotone" /></span><span>Student Access</span></button>
-              <button type="button" onClick={() => setView('materials')} style={sidebarNavStyle(view === 'materials')}><span style={sidebarIconStyle}><UploadSimple size={22} weight="duotone" /></span><span>Teaching Materials</span></button>
-              <button type="button" onClick={() => setView('quiz-builder')} style={sidebarNavStyle(view === 'quiz-builder')}><span style={sidebarIconStyle}><Plus size={22} weight="duotone" /></span><span>Build a Quiz</span></button>
+              <button type="button" data-tour="teacher-nav-access" onClick={() => setView('connect')} style={sidebarNavStyle(view === 'connect')}><span style={sidebarIconStyle}><WifiHigh size={22} weight="duotone" /></span><span>Student Access</span></button>
+              <button type="button" data-tour="teacher-nav-materials" onClick={() => setView('materials')} style={sidebarNavStyle(view === 'materials')}><span style={sidebarIconStyle}><UploadSimple size={22} weight="duotone" /></span><span>Teaching Materials</span></button>
+              <button type="button" data-tour="teacher-nav-quiz" onClick={() => setView('quiz-builder')} style={sidebarNavStyle(view === 'quiz-builder')}><span style={sidebarIconStyle}><Plus size={22} weight="duotone" /></span><span>Build a Quiz</span></button>
               <button type="button" onClick={() => setView('live-class')} style={sidebarNavStyle(view === 'live-class')}><span style={sidebarIconStyle}><Radio size={22} weight="duotone" /></span><span>Teach Live</span></button>
               <button type="button" onClick={() => setCalendarOpen(true)} style={sidebarNavStyle(false)}><span style={sidebarIconStyle}><CalendarDots size={22} weight="duotone" /></span><span>Plan a Lesson</span></button>
               <div style={sidebarSectionStyle}>
@@ -1628,11 +1685,12 @@ export default function TeacherDashboard({ initialView = 'overview' }) {
                   <p style={{ margin: '5px 0 0', color: 'var(--color-text-muted)', fontSize: isMobile ? '0.85rem' : '0.9rem' }}>Your students, materials, and quizzes, plus the link and QR code to get everyone in.</p>
                 </div>
                 {isMobile && <button type="button" onClick={() => setView('connect')} style={{ ...ctaBtnStyle, minHeight: 42, fontWeight: 700, whiteSpace: 'nowrap' }}><QrCode size={16} weight="duotone" />Connect Students</button>}
+                <button type="button" onClick={tour.start} className="pill-button" style={{ fontWeight: 700, whiteSpace: 'nowrap' }}><Sparkle size={16} weight="duotone" />Replay tour</button>
               </section>
 
               {error && <p style={{ color: 'var(--color-danger)', marginBottom: 16 }}>We could not load your dashboard: {error.message}</p>}
 
-              <div style={{ display: 'flex', gap: isMobile ? '12px' : '16px', marginBottom: isMobile ? '24px' : '28px', flexWrap: 'wrap' }}>
+              <div data-tour="teacher-glance" style={{ display: 'flex', gap: isMobile ? '12px' : '16px', marginBottom: isMobile ? '24px' : '28px', flexWrap: 'wrap' }}>
                 <div style={metricCardStyle}><div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>{isLoading ? '—' : allStudents.length}</div><div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 4 }}>Students in class</div></div>
                 <div style={metricCardStyle}><div style={{ fontSize: '2rem', fontWeight: 800, color: alertedStudents.length > 0 ? '#EF9F27' : 'var(--color-success)' }}>{isLoading ? '—' : alertedStudents.length}</div><div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 4 }}>Students to check in on</div></div>
                 <div style={metricCardStyle}><div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>{isLoading ? '—' : (heatmapData?.topics?.length ?? '—')}</div><div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 4 }}>Topics covered so far</div></div>
@@ -1654,7 +1712,7 @@ export default function TeacherDashboard({ initialView = 'overview' }) {
                 </section>
               )}
 
-              <section style={{ marginBottom: isMobile ? '24px' : '32px' }}>
+              <section data-tour="teacher-topics" style={{ marginBottom: isMobile ? '24px' : '32px' }}>
                 <h2 style={sectionHeadStyle}>How Each Topic Is Landing</h2>
                 <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px 16px' }}>{isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p> : heatmapData ? <HeatmapFromApi data={heatmapData} /> : <TopicHeatmap students={allStudents} />}<HeatmapLegend /></div>
               </section>
@@ -1750,6 +1808,8 @@ export default function TeacherDashboard({ initialView = 'overview' }) {
       </div>
 
       {calendarOpen && <TeacherCalendarModal onClose={() => setCalendarOpen(false)} />}
+
+      <ProductTour {...tour.props} />
 
       <button ref={chatBtnRef} onClick={() => setChatOpen(o => !o)} title="LearnLocal Assistant" style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1000, width: 56, height: 56, borderRadius: '50%', background: 'var(--color-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(181,84,44,0.42)', transition: 'transform 0.15s, box-shadow 0.15s' }} onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.07)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(181,84,44,0.5)' }} onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 14px rgba(181,84,44,0.42)' }}>
         <Sparkle size={24} weight="fill" />

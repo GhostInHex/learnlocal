@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CheckCircle, Eye, EyeSlash, LockKey, Student, UserCircle, UserPlus, WarningCircle, FileZip, ArrowRight, Info } from '@phosphor-icons/react'
-import { checkStudentUsername, feature1, getSetupRequired, loginStudent, loginTeacher, signupStudent, importStudentArchive } from '../api/client'
+import { CheckCircle, Eye, EyeSlash, LockKey, Student, UserCircle, UserPlus, WarningCircle, FileZip, ArrowRight, Info, Sparkle } from '@phosphor-icons/react'
+import { checkStudentUsername, feature1, getHealth, getSetupRequired, loginStudent, loginTeacher, signupStudent, importStudentArchive } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import GetAppBanner from '../components/GetAppBanner'
 import LanguageSelect from '../components/LanguageSelect'
@@ -61,6 +61,7 @@ export default function HomeScreen() {
   const [importPin, setImportPin] = useState('')
   const [importModal, setImportModal] = useState(false)
   const [importSuccess, setImportSuccess] = useState(false)
+  const [demo, setDemo] = useState(null)
 
   const sessionMessage = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -84,6 +85,42 @@ export default function HomeScreen() {
       .then((items) => setLanguages(Array.isArray(items) ? items : []))
       .catch(() => setLanguages(FALLBACK_LANGUAGES))
   }, [])
+
+  useEffect(() => {
+    getHealth()
+      .then((data) => {
+        if (data && data.demo_mode) setDemo(data)
+      })
+      .catch(() => {})
+  }, [])
+
+  async function exploreAsTeacher() {
+    if (!demo?.demo_teacher) return
+    setError('')
+    setBusy(true)
+    try {
+      const teacher = await loginTeacher({ username: demo.demo_teacher.username, password: demo.demo_teacher.password })
+      storeTeacher(teacher)
+      navigate('/teacher', { replace: true })
+    } catch (_) {
+      setError('The demo teacher sign-in did not work just now. Please try again.')
+      setBusy(false)
+    }
+  }
+
+  async function exploreAsStudent() {
+    if (!demo?.demo_student) return
+    setError('')
+    setBusy(true)
+    try {
+      const student = await loginStudent({ username: demo.demo_student.username, pin: demo.demo_student.pin })
+      storeStudent(student.student_id)
+      navigate(`/student/${student.student_id}`, { replace: true })
+    } catch (_) {
+      setError('The demo student sign-in did not work just now. Please try again.')
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     const username = signup.username.trim()
@@ -395,6 +432,43 @@ export default function HomeScreen() {
             )}
           </form>
         </div>
+
+        {demo?.demo_mode && demo.demo_teacher && demo.demo_student && (
+          <div style={{ border: '1px solid var(--accent)', background: 'var(--accent-soft)', borderRadius: 16, padding: 18, display: 'grid', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sparkle size={18} weight="fill" style={{ color: 'var(--accent)' }} />
+              <strong style={{ fontSize: '1rem' }}>Try the demo</strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.55 }}>
+              Look around a ready-made classroom with students, materials and quizzes already in place. No sign-up needed.
+            </p>
+            <div style={{ display: 'grid', gap: 4, fontSize: '0.86rem' }}>
+              <span>Teacher: <strong>{demo.demo_teacher.username}</strong>, password <strong>{demo.demo_teacher.password}</strong></span>
+              <span>Student: <strong>{demo.demo_student.username}</strong>, PIN <strong>{demo.demo_student.pin}</strong></span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <button
+                type="button"
+                onClick={exploreAsTeacher}
+                disabled={busy}
+                style={{ minHeight: 46, border: 'none', borderRadius: 12, background: 'var(--accent)', color: '#fff', fontWeight: 700, cursor: busy ? 'default' : 'pointer', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+              >
+                <UserCircle size={17} weight="duotone" />
+                Explore as Teacher
+              </button>
+              <button
+                type="button"
+                onClick={exploreAsStudent}
+                disabled={busy}
+                style={{ minHeight: 46, border: '1px solid var(--accent)', borderRadius: 12, background: 'var(--surface)', color: 'var(--accent)', fontWeight: 700, cursor: busy ? 'default' : 'pointer', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+              >
+                <Student size={17} weight="duotone" />
+                Explore as Student
+              </button>
+            </div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Demo data resets from time to time.</span>
+          </div>
+        )}
 
         <GetAppBanner />
 
