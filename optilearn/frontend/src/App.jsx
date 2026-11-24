@@ -199,6 +199,10 @@ function NetworkGate({ children }) {
 
 function CanonicalOriginRedirect() {
   useEffect(() => {
+    // Split hosting (public demo): the interface is served from a different
+    // origin than the classroom server, so the LAN canonical redirect does
+    // not apply. Enabled only when VITE_SPLIT_HOSTING=true at build time.
+    if (import.meta.env.VITE_SPLIT_HOSTING === 'true') return
     const host = window.location.hostname
     if (host === 'localhost' || host === '127.0.0.1') return
     fetch('/api/network/status', { cache: 'no-store' })
