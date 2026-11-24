@@ -1,0 +1,1 @@
+{"rewrites":[{"destination":"https://learnlocal-api.onrender.com/api/:path*","source":"/api/:path*"}]}
