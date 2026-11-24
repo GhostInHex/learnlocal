@@ -156,6 +156,26 @@ def _has_26b_api_key() -> bool:
     return bool(key and not key.startswith("<"))
 
 
+# ──────────────────────────────────────────────────────────────
+# Groq cloud AI (online tutor for the hosted demo)
+# ──────────────────────────────────────────────────────────────
+_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+_CLOUD_DOWN_MSG = (
+    "The online AI is not reachable right now. "
+    "Please check the internet connection and try again."
+)
+
+
+def _has_groq_api_key() -> bool:
+    key = (settings.GROQ_API_KEY or "").strip()
+    return bool(key and not key.startswith("<"))
+
+
+def _groq_enabled(force_local: bool = False) -> bool:
+    """Groq serves the tutor chat only in auto (online) mode with a key set."""
+    return _has_groq_api_key() and not force_local and not _is_force_offline()
+
+
 async def is_model_present(model_name: str) -> bool:
     """Check if a model is already pulled in Ollama (no download triggered)."""
     try:
@@ -260,6 +280,11 @@ async def warmup_tutor_model() -> dict[str, Any]:
             return get_tutor_model_status()
         _tutor_model_loading = True
         _tutor_model_error = ""
+        if _has_groq_api_key() and not _is_force_offline():
+            # Hosted demo: the tutor is served by Groq, no local model to warm.
+            _tutor_model_ready = True
+            logger.info("Tutor chat ready via Groq cloud model {}", settings.GROQ_MODEL)
+            return get_tutor_model_status()
         model_profile = MODEL_PROFILES["tutor_fast"]
         model_name = _profile_local_model(model_profile)
         try:
@@ -1058,6 +1083,16 @@ class ModelClient:
     ) -> AsyncGenerator[str, None]:
         model_profile = resolve_model_profile(profile, ROUTE_TUTOR)
         lane_name = lane or model_profile.lane
+        if _groq_enabled(force_local):
+            async for token in self._groq_stream(
+                messages,
+                ollama_options,
+                lane=lane_name,
+                feature=feature,
+                cache_status=cache_status,
+            ):
+                yield token
+            return
         async for token in self._ollama_stream(
             messages,
             image_b64,
@@ -1086,6 +1121,14 @@ class ModelClient:
     ) -> "ToolCallEvent | str":
         model_profile = resolve_model_profile(profile, ROUTE_TUTOR)
         lane_name = lane or model_profile.lane
+        if _groq_enabled(force_local):
+            return await self._groq_complete(
+                messages,
+                ollama_options,
+                lane=lane_name,
+                feature=feature,
+                cache_status=cache_status,
+            )
         return await self._ollama_complete(
             messages,
             image_b64,
@@ -1279,6 +1322,166 @@ class ModelClient:
         except Exception as exc:
             logger.error("Ollama complete error: {}", exc)
             raise
+
+    # ── Groq streaming (online tutor — OpenAI-compatible API) ─
+    async def _groq_stream(
+        self,
+        messages: list[dict],
+        extra_options: dict[str, Any] | None = None,
+        lane: str | None = None,
+        feature: str = "chat.stream",
+        cache_status: str = "miss",
+    ) -> AsyncGenerator[str, None]:
+        """Stream a chat response from Groq using its OpenAI-compatible API.
+
+        Used only when GROQ_API_KEY is configured and network mode is auto
+        (the hosted demo). Local installs keep using Ollama exactly as before.
+        Images are not forwarded: the default Groq model here is text-only.
+        """
+        normalised: list[dict] = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            if role == "model":
+                role = "assistant"
+            normalised.append({"role": role, "content": msg.get("content", "")})
+
+        temperature = 1.0
+        top_p = 0.95
+        if extra_options:
+            temperature = float(extra_options.get("temperature", temperature))
+            top_p = float(extra_options.get("top_p", top_p))
+
+        body: dict[str, Any] = {
+            "model": settings.GROQ_MODEL,
+            "messages": normalised,
+            "stream": True,
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": 1024,
+        }
+        headers = {
+            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        url = f"{_GROQ_BASE_URL}/chat/completions"
+        logger.info("Groq /chat/completions stream -> model={}", settings.GROQ_MODEL)
+
+        async def request_stream() -> AsyncGenerator[str, None]:
+            try:
+                async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
+                    async with client.stream("POST", url, json=body, headers=headers) as response:
+                        response.raise_for_status()
+                        async for raw in response.aiter_lines():
+                            if not raw.strip() or not raw.startswith("data:"):
+                                continue
+                            data = raw[5:].strip()
+                            if data == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data)
+                            except json.JSONDecodeError:
+                                continue
+                            choices = chunk.get("choices") or []
+                            if not choices:
+                                continue
+                            token = (choices[0].get("delta") or {}).get("content", "")
+                            if token:
+                                yield token
+            except httpx.HTTPStatusError as exc:
+                logger.error(
+                    "Groq HTTP {} - body={}",
+                    exc.response.status_code,
+                    exc.response.text[:500],
+                )
+                raise RuntimeError(_CLOUD_DOWN_MSG) from exc
+            except (httpx.ConnectError, httpx.ConnectTimeout, ConnectionRefusedError) as exc:
+                logger.error("Groq not reachable (stream): {}", exc)
+                raise RuntimeError(_CLOUD_DOWN_MSG) from exc
+            except httpx.TimeoutException as exc:
+                logger.error("Groq stream timed out: {}", exc)
+                raise RuntimeError(_OLLAMA_TIMEOUT_MSG) from exc
+
+        async for token in model_scheduler.stream_with_lane(
+            lane=lane,
+            feature=feature,
+            route_type=ROUTE_TUTOR,
+            input_size=sum(len(str(m.get("content", ""))) for m in normalised),
+            cache_status=cache_status,
+            generator_factory=request_stream,
+        ):
+            yield token
+
+    async def _groq_complete(
+        self,
+        messages: list[dict],
+        extra_options: dict[str, Any] | None = None,
+        lane: str | None = None,
+        feature: str = "chat.complete",
+        cache_status: str = "miss",
+    ) -> "ToolCallEvent | str":
+        """Non-streaming Groq completion. Mirrors the Ollama complete contract:
+        returns the reply text (tool dispatch is handled by the caller)."""
+        normalised: list[dict] = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            if role == "model":
+                role = "assistant"
+            normalised.append({"role": role, "content": msg.get("content", "")})
+
+        temperature = 1.0
+        top_p = 0.95
+        if extra_options:
+            temperature = float(extra_options.get("temperature", temperature))
+            top_p = float(extra_options.get("top_p", top_p))
+
+        body: dict[str, Any] = {
+            "model": settings.GROQ_MODEL,
+            "messages": normalised,
+            "stream": False,
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": 1024,
+        }
+        headers = {
+            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        url = f"{_GROQ_BASE_URL}/chat/completions"
+        logger.info("Groq /chat/completions complete -> model={}", settings.GROQ_MODEL)
+
+        async def call() -> "ToolCallEvent | str":
+            try:
+                async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
+                    response = await client.post(url, json=body, headers=headers)
+                    response.raise_for_status()
+                    data = response.json()
+                    choices = data.get("choices") or []
+                    if not choices:
+                        return ""
+                    text = (choices[0].get("message") or {}).get("content", "")
+                    return _strip_thinking(text)
+            except httpx.HTTPStatusError as exc:
+                logger.error(
+                    "Groq HTTP {} - body={}",
+                    exc.response.status_code,
+                    exc.response.text[:500],
+                )
+                raise RuntimeError(_CLOUD_DOWN_MSG) from exc
+            except (httpx.ConnectError, httpx.ConnectTimeout, ConnectionRefusedError) as exc:
+                logger.error("Groq not reachable (complete): {}", exc)
+                raise RuntimeError(_CLOUD_DOWN_MSG) from exc
+            except httpx.TimeoutException as exc:
+                logger.error("Groq complete timed out: {}", exc)
+                raise RuntimeError(_OLLAMA_TIMEOUT_MSG) from exc
+
+        return await model_scheduler.run_with_lane(
+            lane=lane,
+            feature=feature,
+            route_type=ROUTE_TUTOR,
+            input_size=sum(len(str(m.get("content", ""))) for m in normalised),
+            cache_status=cache_status,
+            call_factory=call,
+        )
 
     # ── Gemini streaming (online fallback) ────────────────────
     def _build_genai_contents(

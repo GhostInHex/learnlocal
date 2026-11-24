@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     GEMMA_26B_MODEL: str = "gemma-4-31b-it"
     GEMMA_26B_BASE_URL: str = "https://generativelanguage.googleapis.com"
 
+    # Groq (online AI for the hosted demo — OpenAI-compatible API.
+    # When GROQ_API_KEY is set and network mode is auto, the tutor chat
+    # is served by Groq instead of the local Ollama model.)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     # Ollama (primary — offline/local)
     OLLAMA_HOST: str = "http://localhost:11434"
     OLLAMA_MODEL_FAST: str = "gemma4:e2b"
