@@ -1,0 +1,430 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+/*
+ * LearnLocal design tokens.
+ * Warm paper-and-terracotta palette: calm, bookish and professional,
+ * designed to feel at home in a classroom and to stay readable in
+ * bright sunlight on low-end devices. Both themes share the same
+ * variable names so components never hard-code colours.
+ */
+:root,
+:root[data-theme='light'] {
+  --bg: #faf5ee;
+  --bg-soft: #f3ecdf;
+  --surface: #fffdf9;
+  --surface-soft: #f7f1e6;
+  --border: #e3d7c3;
+  --text: #2c241b;
+  --text-muted: #7a6c5b;
+  --accent: #b5542c;
+  --accent-strong: #9a4523;
+  --accent-contrast: #fff8f1;
+  --accent-soft: #f6e2d3;
+  --success: #4f7d4a;
+  --warning: #a97a1f;
+  --danger: #a85b47;
+  --shadow: 0 10px 28px rgba(84, 56, 32, 0.1);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-soft);
+  --color-border: var(--border);
+  --color-primary: var(--accent);
+  --color-primary-dim: #c97b57;
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-hint: #9c8b74;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --font-body: 'Avenir Next', 'Segoe UI', system-ui, -apple-system, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+    'Times New Roman', serif;
+}
+
+:root[data-theme='dark'] {
+  --bg: #171310;
+  --bg-soft: #1e1915;
+  --surface: #211b16;
+  --surface-soft: #2a231b;
+  --border: #3d332a;
+  --text: #f2e9dc;
+  --text-muted: #b4a48d;
+  --accent: #e08a5c;
+  --accent-strong: #eba87c;
+  --accent-contrast: #2a1a10;
+  --accent-soft: #402b1e;
+  --success: #93bc7e;
+  --warning: #d9ac55;
+  --danger: #ce8a6e;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-soft);
+  --color-border: var(--border);
+  --color-primary: var(--accent);
+  --color-primary-dim: #a96a48;
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-hint: #8a7a64;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --font-body: 'Avenir Next', 'Segoe UI', system-ui, -apple-system, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+    'Times New Roman', serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/*
+ * Quiet micro-interactions (Taste pass): one behaviour everywhere.
+ * Linked cards lift 2px, buttons step on hover and settle on press.
+ * No tilt, no bounce, nothing decorative.
+ */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+a.surface-card,
+button.surface-card {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+a.surface-card:hover,
+button.surface-card:hover {
+  transform: translateY(-2px);
+}
+
+.pill-button:hover {
+  border-color: var(--accent);
+}
+
+.pill-button.primary:hover {
+  border-color: var(--accent-strong);
+}
+
+.icon-only {
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+button.icon-only:hover {
+  border-color: var(--accent);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* OpenDyslexic font files (place files under public/fonts/opendyslexic-0.92/) */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-0.92/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-0.92/OpenDyslexic-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-0.92/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-0.92/OpenDyslexic-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* When the UI font is set to OpenDyslexia, prefer that font for the whole app */
+:root[data-font='opendyslexia'] body {
+  font-family: 'OpenDyslexic', var(--font-body);
+}
+
+:root[data-font='opendyslexia'] h1,
+:root[data-font='opendyslexia'] h2 {
+  font-family: 'OpenDyslexic', var(--font-body);
+}
+
+.app-shell {
+  min-height: 100vh;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.page-shell {
+  min-height: 100vh;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+}
+
+input,
+select,
+textarea {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+option {
+  color: var(--text);
+  background: var(--surface);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.surface-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.tid-banner {
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.icon-only svg {
+  width: 30px;
+  height: 30px;
+}
+
+button svg,
+a svg,
+.pill-button svg,
+h1 svg,
+h2 svg,
+h3 svg {
+  transform: scale(1.2);
+  transform-origin: center;
+  stroke-width: 2.25;
+}
+
+.pill-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.pill-button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.pill-button.primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.quick-exit {
+  position: fixed;
+  right: 14px;
+  bottom: 12px;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  text-decoration: none;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.student-sidebar-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-dim) transparent;
+}
+
+.student-sidebar-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.student-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.student-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-primary-dim);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.student-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+  background-clip: padding-box;
+}
+
+@media (max-width: 900px) {
+  .quick-exit {
+    right: 10px;
+    bottom: 10px;
+    padding: 8px 10px;
+  }
+}
+
+/* ---- Auth (sign-in) split layout ---- */
+.auth-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 42%) minmax(0, 58%);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.auth-brand {
+  background: var(--accent-soft);
+  border-right: 1px solid var(--border);
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.auth-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 22px;
+}
+
+@media (max-width: 860px) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auth-brand {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 22px;
+    gap: 14px;
+  }
+
+  .auth-brand-extras {
+    display: none;
+  }
+
+  .auth-main {
+    padding: 24px 16px 32px;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
