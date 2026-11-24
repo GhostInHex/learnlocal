@@ -169,6 +169,9 @@ function NetworkGate({ children }) {
     }
 
     check()
+    // Keep re-checking while the first attempts fail, so the gate can reach
+    // the offline screen instead of sitting on the blank checking shell.
+    intervalId = setInterval(check, 3000)
 
     return () => {
       cancelled = true
