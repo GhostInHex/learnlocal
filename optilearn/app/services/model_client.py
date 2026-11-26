@@ -1246,6 +1246,8 @@ class ModelClient:
             try:
                 async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
                     async with client.stream("POST", url, json=body) as response:
+                        if response.is_error:
+                            await response.aread()
                         response.raise_for_status()
                         buffer = ""
                         async for raw in response.aiter_lines():
@@ -1414,6 +1416,8 @@ class ModelClient:
             try:
                 async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
                     async with client.stream("POST", url, json=body, headers=headers) as response:
+                        if response.is_error:
+                            await response.aread()
                         response.raise_for_status()
                         async for raw in response.aiter_lines():
                             if not raw.strip() or not raw.startswith("data:"):
