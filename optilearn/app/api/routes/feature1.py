@@ -637,6 +637,16 @@ def _extract_pdf_page_text(page: object, page_num: int) -> str:
     except Exception as exc:
         logger.warning("PDF OCR failed on page {}: {}", page_num, exc)
 
+    try:
+        from app.services import ocr_client as _ocr_mod
+
+        pix = page.get_pixmap(dpi=150)  # type: ignore[attr-defined]
+        ocr_text = _normalize_extracted_text(_ocr_mod.extract_text(pix.tobytes("png")))
+        if ocr_text:
+            return ocr_text
+    except Exception as exc:
+        logger.warning("PDF PaddleOCR fallback failed on page {}: {}", page_num, exc)
+
     return raw_text
 
 _TRANSLATE_PROMPT = """\
@@ -1187,6 +1197,12 @@ async def translate_material(body: TranslateRequest) -> StreamingResponse:
                     yield _sse({"type": "page_complete", "page": page_num, "full_text": page_buf})
 
                 full_text = normalize_ai_output("\n\n".join(full_parts))
+                if not full_text.strip():
+                    yield _sse({
+                        "type": "error",
+                        "message": "No readable text could be translated from this file. Try pasting the text directly.",
+                    })
+                    return
                 _translation_cache[_translation_cache_key] = full_text
                 await generated_cache.set_text(
                     cache_key,
