@@ -1340,6 +1340,7 @@ def _render_notes_pdf(
         "bn": "NotoSansBengali-Regular.ttf",
         "my": "NotoSansMyanmar-Regular.ttf",
         "th": "NotoSansThai-Regular.ttf",
+        "kn": "NotoSansKannada-Regular.ttf",
     }
 
     def _try_register(font_name: str, font_path: Path) -> bool:

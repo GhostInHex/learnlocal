@@ -145,6 +145,7 @@ def _render_translation_pdf(
         "ne": ("NotoDevanagari", "NotoSansDevanagari-Regular.ttf"),
         "my": ("NotoMyanmar", "NotoSansMyanmar-Regular.ttf"),
         "th": ("NotoThai", "NotoSansThai-Regular.ttf"),
+        "kn": ("NotoKannada", "NotoSansKannada-Regular.ttf"),
     }
     script_font_family, script_font_file = script_fonts.get(
         target_language, ("NotoSans", "NotoSans-Regular.ttf")
@@ -195,6 +196,7 @@ def _render_translation_pdf(
             "bn": "NotoSansBengali-Regular.ttf",
             "my": "NotoSansMyanmar-Regular.ttf",
             "th": "NotoSansThai-Regular.ttf",
+            "kn": "NotoSansKannada-Regular.ttf",
         }
 
         def try_register(font_name: str, font_path: Path) -> bool:

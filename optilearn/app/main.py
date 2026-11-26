@@ -123,6 +123,7 @@ def _ensure_noto_fonts() -> None:
         "NotoSansBengali-Regular.ttf":    f"{_GH}/NotoSansBengali/NotoSansBengali-Regular.ttf",
         "NotoSansMyanmar-Regular.ttf":    f"{_GH}/NotoSansMyanmar/NotoSansMyanmar-Regular.ttf",
         "NotoSansThai-Regular.ttf":       f"{_GH}/NotoSansThai/NotoSansThai-Regular.ttf",
+        "NotoSansKannada-Regular.ttf":    f"{_GH}/NotoSansKannada/NotoSansKannada-Regular.ttf",
     }
 
     for filename, url in fonts.items():

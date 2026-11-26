@@ -42,6 +42,7 @@ VOICE_MAP: dict[str, tuple[str, str]] = {
 
     # MMS-TTS uses ISO 639-3 model suffixes.
     "ta": ("mms", "facebook/mms-tts-tam"),  # Tamil - works, no uroman
+    "kn": ("mms", "facebook/mms-tts-kan"),  # Kannada - MMS-TTS
     "so": ("mms", "facebook/mms-tts-som"),  # Somali - works, Latin script
     "bn": ("mms", "facebook/mms-tts-ben"),  # Bengali - works
     "am": ("mms", "facebook/mms-tts-amh"),  # Amharic - needs uroman check

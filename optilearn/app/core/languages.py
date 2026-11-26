@@ -148,6 +148,7 @@ _NATIVE_NAMES: dict[str, str] = {
     "zh-tw": "\u7e41\u9ad4\u4e2d\u6587",
     "ja": "\u65e5\u672c\u8a9e",
     "ko": "\ud55c\uad6d\uc5b4",
+    "kn": "\u0c95\u0ca8\u0ccd\u0ca8\u0ca1",
 }
 
 _SCRIPT_RULES: dict[str, str] = {
@@ -207,6 +208,7 @@ _LANGUAGE_ALIASES: dict[str, str] = {
     "swahili": "sw",
     "kiswahili": "sw",
     "russian": "ru",
+    "kannada": "kn",
 }
 
 _SCRIPT_CHECKS: dict[str, tuple[str, list[str]]] = {

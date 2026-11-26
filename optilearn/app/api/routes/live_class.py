@@ -79,6 +79,7 @@ _LANG_NAMES = {
     "ti": "Tigrinya", "hi": "Hindi", "ur": "Urdu", "fa": "Dari/Farsi",
     "my": "Burmese", "th": "Thai", "bn": "Bengali", "tr": "Turkish",
     "ps": "Pashto", "rw": "Kinyarwanda", "rn": "Kirundi", "ha": "Hausa",
+    "kn": "Kannada",
 }
 
 def _lang_name(code: str) -> str:

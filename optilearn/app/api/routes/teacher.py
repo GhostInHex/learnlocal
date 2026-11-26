@@ -291,6 +291,7 @@ async def teacher_report(
         "ne": ("NotoDevanagari", "NotoSansDevanagari-Regular.ttf"),
         "my": ("NotoMyanmar",    "NotoSansMyanmar-Regular.ttf"),
         "th": ("NotoThai",       "NotoSansThai-Regular.ttf"),
+        "kn": ("NotoKannada",    "NotoSansKannada-Regular.ttf"),
     }
 
     def _ff(name: str, filename: str, weight: str = "400") -> str:
@@ -659,6 +660,7 @@ _LANG_NAMES = {
     "ta": "Tamil", "hi": "Hindi", "ur": "Urdu", "ps": "Pashto",
     "fa": "Persian", "tr": "Turkish", "ku": "Kurdish", "ha": "Hausa",
     "yo": "Yoruba", "ig": "Igbo", "zu": "Zulu", "pt": "Portuguese",
+    "kn": "Kannada",
 }
 
 

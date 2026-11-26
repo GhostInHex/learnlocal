@@ -15,6 +15,7 @@ const LANGUAGES = [
   { code: 'so', name: 'Somali' }, { code: 'am', name: 'Amharic' }, { code: 'hi', name: 'Hindi' },
   { code: 'ur', name: 'Urdu' }, { code: 'fa', name: 'Dari / Farsi' }, { code: 'my', name: 'Burmese' },
   { code: 'bn', name: 'Bengali' }, { code: 'tr', name: 'Turkish' }, { code: 'ps', name: 'Pashto' },
+  { code: 'kn', name: 'Kannada' },
 ]
 
 function getHttpsUrl() {
