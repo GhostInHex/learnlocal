@@ -71,8 +71,8 @@ export default function GetAppBanner({ compact = false }) {
   }, [])
 
   function applyFontChoice(choice, persist = true) {
-    if (choice === 'opendyslexia') {
-      document.documentElement.setAttribute('data-font', 'opendyslexia')
+    if (choice === 'opendyslexia' || choice === 'geist') {
+      document.documentElement.setAttribute('data-font', choice)
     } else {
       document.documentElement.removeAttribute('data-font')
     }
@@ -153,6 +153,10 @@ export default function GetAppBanner({ compact = false }) {
           <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="radio" name="optilearn-font" checked={fontChoice === 'default'} onChange={() => applyFontChoice('default')} />
             <span>Standard lettering</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input type="radio" name="optilearn-font" checked={fontChoice === 'geist'} onChange={() => applyFontChoice('geist')} />
+            <span>Geist, clean modern lettering</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="radio" name="optilearn-font" checked={fontChoice === 'opendyslexia'} onChange={() => applyFontChoice('opendyslexia')} />

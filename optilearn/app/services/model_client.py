@@ -383,22 +383,23 @@ async def check_network_status() -> dict:
     """
     Returns network status.
     Runtime network mode (teacher toggle) takes priority over USE_LOCAL_OLLAMA.
-    Returns: {
-        "connected": bool,
-        "latency_ms": int | None,
-        "use_26b": bool
-    }
+    ``use_26b`` is retained for existing UI callers and means that a cloud
+    provider is active. ``cloud_provider`` identifies the selected backend.
     """
     # Runtime toggle always wins over .env default
     if _is_force_offline():
-        return {"connected": True, "latency_ms": None, "use_26b": False}
-    if not _has_26b_api_key():
-        return {"connected": True, "latency_ms": None, "use_26b": False}
+        return {"connected": True, "latency_ms": None, "use_26b": False, "cloud_provider": None}
+
+    # Groq is the hosted deployment's primary online backend. Prefer it when
+    # configured so features do not silently fall through to local Ollama.
+    provider = "groq" if _has_groq_api_key() else "gemini" if _has_26b_api_key() else None
+    if provider is None:
+        return {"connected": True, "latency_ms": None, "use_26b": False, "cloud_provider": None}
     # Auto mode: measure latency and decide
     latency = await _measure_network_latency()
     if latency is None:
-        return {"connected": False, "latency_ms": None, "use_26b": False}
-    return {"connected": True, "latency_ms": latency, "use_26b": True}
+        return {"connected": False, "latency_ms": None, "use_26b": False, "cloud_provider": None}
+    return {"connected": True, "latency_ms": latency, "use_26b": True, "cloud_provider": provider}
 
 
 async def _measure_network_latency() -> int | None:
@@ -724,6 +725,26 @@ async def route_generate(
 
     status = await get_network_status()
     if status["use_26b"] and model_profile.use_cloud_when_auto:
+        provider = status.get("cloud_provider")
+        if provider == "groq" and not image_b64:
+            logger.info(
+                "MODEL ROUTE: {} -> Groq API ({}) latency={}ms",
+                route_type,
+                settings.GROQ_MODEL,
+                status["latency_ms"],
+            )
+            async for token in model_client._groq_stream(
+                [
+                    *([{"role": "system", "content": system_prompt}] if system_prompt else []),
+                    {"role": "user", "content": prompt},
+                ],
+                ollama_options,
+                lane=lane_name,
+                feature=feature_name,
+                route_type=route_type,
+            ):
+                yield token
+            return
         logger.info(
             "MODEL ROUTE: {} -> 26B API ({}) latency={}ms",
             route_type,
@@ -879,20 +900,41 @@ async def route_generate_with_fallback(
 
     got_tokens = False
     try:
-        logger.info(
-            "MODEL ROUTE: {} -> 26B API ({}) latency={}ms",
-            route_type,
-            settings.GEMMA_26B_MODEL,
-            status["latency_ms"],
-        )
-        async def api_stream() -> AsyncGenerator[str, None]:
-            async for piece in stream_26b(
-                prompt,
-                system_prompt=system_prompt,
-                enable_thinking=enable_thinking,
-                image_b64=image_b64,
-            ):
-                yield piece
+        if status.get("cloud_provider") == "groq" and not image_b64:
+            logger.info(
+                "MODEL ROUTE: {} -> Groq API ({}) latency={}ms",
+                route_type,
+                settings.GROQ_MODEL,
+                status["latency_ms"],
+            )
+            async def api_stream() -> AsyncGenerator[str, None]:
+                async for piece in model_client._groq_stream(
+                    [
+                        *([{"role": "system", "content": system_prompt}] if system_prompt else []),
+                        {"role": "user", "content": prompt},
+                    ],
+                    ollama_options,
+                    lane=lane_name,
+                    feature=feature_name,
+                    route_type=route_type,
+                    schedule=False,
+                ):
+                    yield piece
+        else:
+            logger.info(
+                "MODEL ROUTE: {} -> 26B API ({}) latency={}ms",
+                route_type,
+                settings.GEMMA_26B_MODEL,
+                status["latency_ms"],
+            )
+            async def api_stream() -> AsyncGenerator[str, None]:
+                async for piece in stream_26b(
+                    prompt,
+                    system_prompt=system_prompt,
+                    enable_thinking=enable_thinking,
+                    image_b64=image_b64,
+                ):
+                    yield piece
 
         async for token in model_scheduler.stream_with_lane(
             lane=lane_name,
@@ -1331,6 +1373,8 @@ class ModelClient:
         lane: str | None = None,
         feature: str = "chat.stream",
         cache_status: str = "miss",
+        route_type: str = ROUTE_TUTOR,
+        schedule: bool = True,
     ) -> AsyncGenerator[str, None]:
         """Stream a chat response from Groq using its OpenAI-compatible API.
 
@@ -1401,10 +1445,15 @@ class ModelClient:
                 logger.error("Groq stream timed out: {}", exc)
                 raise RuntimeError(_OLLAMA_TIMEOUT_MSG) from exc
 
+        if not schedule:
+            async for token in request_stream():
+                yield token
+            return
+
         async for token in model_scheduler.stream_with_lane(
             lane=lane,
             feature=feature,
-            route_type=ROUTE_TUTOR,
+            route_type=route_type,
             input_size=sum(len(str(m.get("content", ""))) for m in normalised),
             cache_status=cache_status,
             generator_factory=request_stream,

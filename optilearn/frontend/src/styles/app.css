@@ -52,6 +52,7 @@ body,
     'Helvetica Neue', Arial, sans-serif;
   --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
     'Times New Roman', serif;
+  --font-geist: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
 }
 
 :root[data-theme='dark'] {
@@ -89,6 +90,7 @@ body,
     'Helvetica Neue', Arial, sans-serif;
   --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
     'Times New Roman', serif;
+  --font-geist: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
 }
 
 body {
@@ -198,6 +200,12 @@ button.icon-only:hover {
 :root[data-font='opendyslexia'] h1,
 :root[data-font='opendyslexia'] h2 {
   font-family: 'OpenDyslexic', var(--font-body);
+}
+
+:root[data-font='geist'] body,
+:root[data-font='geist'] h1,
+:root[data-font='geist'] h2 {
+  font-family: var(--font-geist);
 }
 
 .app-shell {

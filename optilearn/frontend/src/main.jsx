@@ -12,6 +12,7 @@ import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import { ThemeProvider } from './context/ThemeContext'
 import { _setPrompt } from './pwaInstall'
+import '@fontsource-variable/geist'
 import './styles/app.css'
 
 // Capture beforeinstallprompt before React mounts so the event is never missed

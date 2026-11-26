@@ -36,6 +36,7 @@ class NetworkModeRequest(BaseModel):
 
 class ApiKeysRequest(BaseModel):
     gemma_api_key: str | None = None
+    groq_api_key: str | None = None
     bey_api_key: str | None = None
     use_local_ollama: bool | None = None
 
@@ -66,6 +67,7 @@ async def get_api_keys_route() -> dict:
     """Return which keys are configured (masked — never return raw values)."""
     return {
         "gemma_api_key_set": bool(settings.GEMMA_API_KEY),
+        "groq_api_key_set": bool(settings.GROQ_API_KEY),
         "bey_api_key_set": bool(settings.BEY_API_KEY),
         "use_local_ollama": settings.USE_LOCAL_OLLAMA,
     }
@@ -87,6 +89,8 @@ async def set_api_keys_route(body: ApiKeysRequest) -> dict:
     updates: dict[str, str] = {}
     if body.gemma_api_key is not None:
         updates["GEMMA_API_KEY"] = body.gemma_api_key
+    if body.groq_api_key is not None:
+        updates["GROQ_API_KEY"] = body.groq_api_key
     if body.bey_api_key is not None:
         updates["BEY_API_KEY"] = body.bey_api_key
     if body.use_local_ollama is not None:
@@ -120,6 +124,8 @@ async def set_api_keys_route(body: ApiKeysRequest) -> dict:
     # Apply immediately to the live settings singleton
     if body.gemma_api_key is not None:
         settings.GEMMA_API_KEY = body.gemma_api_key
+    if body.groq_api_key is not None:
+        settings.GROQ_API_KEY = body.groq_api_key
     if body.bey_api_key is not None:
         settings.BEY_API_KEY = body.bey_api_key
     if body.use_local_ollama is not None:
@@ -130,6 +136,7 @@ async def set_api_keys_route(body: ApiKeysRequest) -> dict:
     return {
         "ok": True,
         "gemma_api_key_set": bool(settings.GEMMA_API_KEY),
+        "groq_api_key_set": bool(settings.GROQ_API_KEY),
         "bey_api_key_set": bool(settings.BEY_API_KEY),
         "use_local_ollama": settings.USE_LOCAL_OLLAMA,
     }
