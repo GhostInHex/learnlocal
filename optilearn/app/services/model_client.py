@@ -164,6 +164,47 @@ _CLOUD_DOWN_MSG = (
     "The online AI is not reachable right now. "
     "Please check the internet connection and try again."
 )
+_groq_resolved_model: str | None = None
+_GROQ_PREFERRED_MODELS = (
+    "llama-3.3-70b-versatile",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "llama-3.1-8b-instant",
+    "qwen/qwen3-32b",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+)
+_GROQ_NON_CHAT_HINTS = ("whisper", "tts", "guard", "orpheus", "embed")
+
+
+async def _pick_available_groq_model(
+    client: httpx.AsyncClient,
+    headers: dict[str, str],
+    failed_model: str,
+) -> str | None:
+    """Query Groq /models and pick the best accessible chat model when the configured one is 404."""
+    global _groq_resolved_model  # noqa: PLW0603
+    try:
+        r = await client.get(f"{_GROQ_BASE_URL}/models", headers=headers, timeout=10.0)
+        if r.status_code != 200:
+            return None
+        ids = [
+            m.get("id", "")
+            for m in r.json().get("data", [])
+            if m.get("id")
+            and m.get("id") != failed_model
+            and not any(h in m.get("id", "").lower() for h in _GROQ_NON_CHAT_HINTS)
+        ]
+        if not ids:
+            return None
+        for preferred in _GROQ_PREFERRED_MODELS:
+            if preferred in ids:
+                _groq_resolved_model = preferred
+                return preferred
+        _groq_resolved_model = ids[0]
+        return ids[0]
+    except Exception as exc:
+        logger.debug("Groq /models lookup failed: {}", exc)
+        return None
 
 
 def _has_groq_api_key() -> bool:
@@ -1397,8 +1438,9 @@ class ModelClient:
             temperature = float(extra_options.get("temperature", temperature))
             top_p = float(extra_options.get("top_p", top_p))
 
+        active_model = _groq_resolved_model or settings.GROQ_MODEL
         body: dict[str, Any] = {
-            "model": settings.GROQ_MODEL,
+            "model": active_model,
             "messages": normalised,
             "stream": True,
             "temperature": temperature,
@@ -1406,35 +1448,53 @@ class ModelClient:
             "max_tokens": 1024,
         }
         headers = {
-            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Authorization": f"Bearer {settings.GROQ_API_KEY.strip()}",
             "Content-Type": "application/json",
         }
         url = f"{_GROQ_BASE_URL}/chat/completions"
-        logger.info("Groq /chat/completions stream -> model={}", settings.GROQ_MODEL)
+        logger.info("Groq /chat/completions stream -> model={}", active_model)
 
         async def request_stream() -> AsyncGenerator[str, None]:
             try:
                 async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
-                    async with client.stream("POST", url, json=body, headers=headers) as response:
-                        if response.is_error:
-                            await response.aread()
-                        response.raise_for_status()
-                        async for raw in response.aiter_lines():
-                            if not raw.strip() or not raw.startswith("data:"):
-                                continue
-                            data = raw[5:].strip()
-                            if data == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(data)
-                            except json.JSONDecodeError:
-                                continue
-                            choices = chunk.get("choices") or []
-                            if not choices:
-                                continue
-                            token = (choices[0].get("delta") or {}).get("content", "")
-                            if token:
-                                yield token
+                    for attempt in range(2):
+                        async with client.stream("POST", url, json=body, headers=headers) as response:
+                            if response.is_error:
+                                await response.aread()
+                                if (
+                                    attempt == 0
+                                    and response.status_code == 404
+                                    and "model_not_found" in response.text
+                                ):
+                                    fallback = await _pick_available_groq_model(
+                                        client, headers, body["model"]
+                                    )
+                                    if fallback:
+                                        logger.warning(
+                                            "Groq model '{}' unavailable; retrying with '{}'",
+                                            body["model"],
+                                            fallback,
+                                        )
+                                        body["model"] = fallback
+                                        continue
+                            response.raise_for_status()
+                            async for raw in response.aiter_lines():
+                                if not raw.strip() or not raw.startswith("data:"):
+                                    continue
+                                data = raw[5:].strip()
+                                if data == "[DONE]":
+                                    break
+                                try:
+                                    chunk = json.loads(data)
+                                except json.JSONDecodeError:
+                                    continue
+                                choices = chunk.get("choices") or []
+                                if not choices:
+                                    continue
+                                token = (choices[0].get("delta") or {}).get("content", "")
+                                if token:
+                                    yield token
+                            return
             except httpx.HTTPStatusError as exc:
                 logger.error(
                     "Groq HTTP {} - body={}",
@@ -1487,8 +1547,9 @@ class ModelClient:
             temperature = float(extra_options.get("temperature", temperature))
             top_p = float(extra_options.get("top_p", top_p))
 
+        active_model = _groq_resolved_model or settings.GROQ_MODEL
         body: dict[str, Any] = {
-            "model": settings.GROQ_MODEL,
+            "model": active_model,
             "messages": normalised,
             "stream": False,
             "temperature": temperature,
@@ -1496,16 +1557,26 @@ class ModelClient:
             "max_tokens": 1024,
         }
         headers = {
-            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Authorization": f"Bearer {settings.GROQ_API_KEY.strip()}",
             "Content-Type": "application/json",
         }
         url = f"{_GROQ_BASE_URL}/chat/completions"
-        logger.info("Groq /chat/completions complete -> model={}", settings.GROQ_MODEL)
+        logger.info("Groq /chat/completions complete -> model={}", active_model)
 
         async def call() -> "ToolCallEvent | str":
             try:
                 async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
                     response = await client.post(url, json=body, headers=headers)
+                    if response.status_code == 404 and "model_not_found" in response.text:
+                        fallback = await _pick_available_groq_model(client, headers, body["model"])
+                        if fallback:
+                            logger.warning(
+                                "Groq model '{}' unavailable; retrying with '{}'",
+                                body["model"],
+                                fallback,
+                            )
+                            body["model"] = fallback
+                            response = await client.post(url, json=body, headers=headers)
                     response.raise_for_status()
                     data = response.json()
                     choices = data.get("choices") or []
