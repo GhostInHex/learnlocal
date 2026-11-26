@@ -1,7 +1,7 @@
 """
 app/services/mdns_server.py — mDNS/Bonjour service registration.
 
-Broadcasts optilearn.local on the LAN so iOS/macOS devices can reach the
+Broadcasts learnlocal.local on the LAN so iOS/macOS devices can reach the
 server by hostname without knowing the hotspot IP. Uses the zeroconf library.
 Start with start_mdns(port); stop cleanly with stop_mdns().
 """
@@ -49,17 +49,17 @@ def _register_mdns(port: int) -> None:
 
             info = ServiceInfo(
                 "_http._tcp.local.",
-                "OptiLearn._http._tcp.local.",
+                "LearnLocal._http._tcp.local.",
                 addresses=[ip_bytes],
                 port=port,
                 properties={"path": "/"},
-                server="optilearn.local.",
+                server="learnlocal.local.",
             )
 
             _zeroconf = Zeroconf()
             _zeroconf.register_service(info)
             logger.info(
-                "mDNS active - students can connect at http://optilearn.local:{}",
+                "mDNS active - students can connect at http://learnlocal.local:{}",
                 port,
             )
     except Exception as exc:

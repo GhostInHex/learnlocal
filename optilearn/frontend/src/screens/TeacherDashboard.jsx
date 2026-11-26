@@ -257,7 +257,7 @@ function ConnectStudentsView({ isMobile = false }) {
 
   const fallbackUrl = status?.connect_url || status?.server_url || 'http://192.168.137.1:8000'
   const url = fallbackUrl.endsWith('/') ? fallbackUrl : `${fallbackUrl}/`
-  const mdnsUrl = status?.mdns_url || 'http://optilearn.local:8000/'
+  const mdnsUrl = status?.mdns_url || `http://learnlocal.local:${status?.port || 8000}/`
   const connectionUrls = Array.from(new Set([url, mdnsUrl].filter(Boolean)))
   // HTTPS URL for microphone-dependent features (Live Class personal mode, teacher broadcast)
   const httpsUrl = url.replace(/^http:/, 'https:').replace(/:(\d+)\//, ':8443/')
@@ -340,11 +340,11 @@ function ConnectStudentsView({ isMobile = false }) {
             </div>
 
             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.84rem', lineHeight: 1.5 }}>
-              Start with the numeric address - it keeps students signed in reliably. The optilearn.local address is a handy alternative, though it may not load on some iPhone, iPad, or hotspot networks.
+              Start with the numeric address - it keeps students signed in reliably. The learnlocal.local address is a handy alternative, though it may not load on some iPhone, iPad, or hotspot networks.
             </div>
 
             <ol style={{ margin: 0, paddingLeft: 22, lineHeight: 1.65, color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-              <li>Join the "OptiLearn" WiFi network on your device</li>
+              <li>Join the same WiFi network as your teacher (or the "LearnLocal" hotspot) on your device</li>
               <li>Scan the QR code above, or enter the address in your browser</li>
               <li>Sign in with your account, or create one if you are new</li>
               <li>Tap "Add to Home Screen" to save the LearnLocal app</li>

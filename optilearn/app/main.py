@@ -7,6 +7,7 @@ lifespan (DB init on startup).
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
@@ -31,7 +32,7 @@ from app.services.dns_server import start_captive_portal, stop_captive_portal
 from app.services.mdns_server import start_mdns, stop_mdns
 from app.services.model_client import get_model_profiles, get_network_mode, get_network_status, get_tutor_model_status, load_user_network_settings, warmup_tutor_model
 from app.services.whisper_client import get_transcriber_status
-from app.services.network import get_cached_hotspot_ip, get_server_url
+from app.services.network import ensure_windows_firewall_ports, get_cached_hotspot_ip, get_server_url
 
 
 _CAPTIVE_HOSTS = frozenset({
@@ -230,19 +231,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await seed_demo_data()
         except Exception as exc:
             logger.warning("Demo seeding skipped: {}", exc)
-    hotspot_ip = get_cached_hotspot_ip()
-    server_url = get_server_url()
-    logger.info("Server accessible at: {}", server_url)
-    portal_active = start_captive_portal(hotspot_ip)
-    if portal_active:
-        logger.info("Captive portal active; students auto-connect on WiFi join")
+    host = settings.HOST.strip("[]")
+    try:
+        loopback_only = ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        loopback_only = host.lower() == "localhost"
+
+    if loopback_only:
+        logger.info("Local-only bind detected; captive portal and mDNS disabled")
     else:
-        logger.warning(
-            "Captive portal requires administrator privileges. "
-            "Students connect via QR code or URL: {}",
-            server_url,
-        )
-    start_mdns(port=settings.PORT)
+        ensure_windows_firewall_ports([settings.PORT, settings.HTTPS_PORT])
+        hotspot_ip = get_cached_hotspot_ip()
+        server_url = get_server_url()
+        logger.info("Server accessible at: {}", server_url)
+        portal_active = start_captive_portal(hotspot_ip)
+        if portal_active:
+            logger.info("Captive portal active; students auto-connect on WiFi join")
+        else:
+            logger.warning(
+                "Captive portal requires administrator privileges. "
+                "Students connect via QR code or URL: {}",
+                server_url,
+            )
+        start_mdns(port=settings.PORT)
     # Warm the student tutor first, then live translation, then embeddings. Running
     # FAISS model loading beside ASR made classroom startup painfully slow on teacher laptops.
     async def _warmup_background_models() -> None:

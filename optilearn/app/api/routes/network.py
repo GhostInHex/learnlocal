@@ -33,8 +33,8 @@ import time as _time_mod
 _student_count_cache: tuple[float, int] = (0.0, 0)
 _STUDENT_COUNT_TTL = 8.0
 
-# Cache the QR PNG — server URL never changes after startup
-_qr_bytes_cache: bytes | None = None
+# Cache the QR PNG keyed by connect URL so it updates automatically if the LAN IP changes
+_qr_bytes_cache: tuple[str, bytes] | None = None
 
 _CAPTIVE_HOST_HINTS = (
     "captive.apple.com",
@@ -53,7 +53,14 @@ def _request_host(request: Request) -> str:
 
 def _should_redirect_captive_check(request: Request) -> bool:
     host = _request_host(request)
-    local_hosts = {"", "localhost", "127.0.0.1", get_cached_hotspot_ip()}
+    local_hosts = {
+        "",
+        "localhost",
+        "127.0.0.1",
+        "learnlocal.local",
+        "optilearn.local",
+        get_cached_hotspot_ip(),
+    }
     if host in local_hosts:
         return False
     return True if any(hint in host for hint in _CAPTIVE_HOST_HINTS) else host not in local_hosts
@@ -72,7 +79,7 @@ def _primary_connect_url() -> str:
 
 
 def _mdns_connect_url() -> str:
-    return f"http://optilearn.local:{settings.PORT}/"
+    return f"http://learnlocal.local:{settings.PORT}/"
 
 
 @router.get("/generate_204", include_in_schema=False)
@@ -202,21 +209,23 @@ async def refresh_network_status() -> dict:
 
 def _qr_png_bytes() -> bytes:
     global _qr_bytes_cache  # noqa: PLW0603
-    if _qr_bytes_cache is not None:
-        return _qr_bytes_cache
+    url = _primary_connect_url()
+    if _qr_bytes_cache is not None and _qr_bytes_cache[0] == url:
+        return _qr_bytes_cache[1]
     qr = qrcode.QRCode(
         version=2,
         error_correction=qrcode.constants.ERROR_CORRECT_H,
         box_size=12,
         border=4,
     )
-    qr.add_data(_primary_connect_url())
+    qr.add_data(url)
     qr.make(fit=True)
     img = qr.make_image(fill_color=THEME_BLUE, back_color="white")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
-    _qr_bytes_cache = buf.getvalue()
-    return _qr_bytes_cache
+    data = buf.getvalue()
+    _qr_bytes_cache = (url, data)
+    return data
 
 
 @router.get("/api/network/qr")

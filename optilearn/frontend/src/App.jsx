@@ -204,7 +204,7 @@ function CanonicalOriginRedirect() {
     // not apply. Enabled only when VITE_SPLIT_HOSTING=true at build time.
     if (import.meta.env.VITE_SPLIT_HOSTING === 'true') return
     const host = window.location.hostname
-    if (host === 'localhost' || host === '127.0.0.1') return
+    if (host === 'localhost' || host === '127.0.0.1' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return
     fetch('/api/network/status', { cache: 'no-store' })
       .then((r) => r.json())
       .then((data) => {
@@ -213,9 +213,15 @@ function CanonicalOriginRedirect() {
         try {
           const canonicalOrigin = new URL(canonical).origin
           if (window.location.origin !== canonicalOrigin) {
-            window.location.replace(
-              canonicalOrigin + window.location.pathname + window.location.search
-            )
+            fetch(`${canonicalOrigin}/api/health`, { cache: 'no-store' })
+              .then((res) => {
+                if (res.ok) {
+                  window.location.replace(
+                    canonicalOrigin + window.location.pathname + window.location.search
+                  )
+                }
+              })
+              .catch(() => {})
           }
         } catch (_) {}
       })

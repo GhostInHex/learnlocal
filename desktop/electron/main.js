@@ -274,7 +274,7 @@ function startServer() {
     ...process.env,
     PYTHONUNBUFFERED: '1',
     PORT: String(serverPort),
-    HOST: '127.0.0.1',
+    HOST: '0.0.0.0',
     FRONTEND_DIST: path.join(OPTILEARN_DIR, 'frontend', 'dist'),
   }
 
@@ -303,7 +303,7 @@ function startServer() {
   serverProcess = spawn(
     python,
     ['-m', 'uvicorn', 'app.main:app',
-     '--host', '127.0.0.1',
+     '--host', '0.0.0.0',
      '--port', String(serverPort),
      '--no-access-log'],
     { cwd: OPTILEARN_DIR, env, windowsHide: true }

@@ -10,6 +10,8 @@ from __future__ import annotations
 import ipaddress
 import socket
 import subprocess
+import sys
+import time
 
 import psutil
 from loguru import logger
@@ -17,7 +19,15 @@ from loguru import logger
 from app.core.config import settings
 
 _cached_ip: str | None = None
+_cached_ip_at: float = 0.0
+_IP_CACHE_TTL_SECONDS = 10.0
 
+_WIFI_INTERFACE_HINTS = (
+    "wi-fi",
+    "wifi",
+    "wireless",
+    "wlan",
+)
 _PREFERRED_INTERFACE_HINTS = (
     "mobile hotspot",
     "wi-fi",
@@ -29,14 +39,30 @@ _PREFERRED_INTERFACE_HINTS = (
 )
 _SKIP_INTERFACE_HINTS = (
     "bluetooth",
+    "cloudflare",
     "docker",
+    "hamachi",
     "hyper-v",
     "loopback",
+    "mullvad",
     "npcap",
+    "openvpn",
+    "proton",
+    "radmin",
+    "tailscale",
+    "tap-",
+    "tun",
+    "vbox",
+    "vethernet",
+    "vgate",
+    "virtual",
     "virtualbox",
     "vmware",
     "vmswitch",
+    "warp",
+    "wireguard",
     "wsl",
+    "zerotier",
 )
 
 
@@ -62,16 +88,38 @@ def _interface_is_up(iface: str) -> bool:
     return True if stats is None else bool(stats.isup)
 
 
-def _interface_score(iface: str, ip: str) -> int:
+def _get_default_route_ip() -> str | None:
+    """Return the local IPv4 address used for the active default route, if any."""
+    for target in (("10.255.255.255", 1), ("8.8.8.8", 80)):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.settimeout(0.2)
+                s.connect(target)
+                ip = s.getsockname()[0]
+                if _is_ipv4_private_candidate(ip):
+                    return ip
+        except Exception:
+            continue
+    return None
+
+
+def _interface_score(iface: str, ip: str, default_route_ip: str | None = None) -> int:
     name = iface.lower()
     score = 0
     if any(hint in name for hint in _SKIP_INTERFACE_HINTS):
-        score -= 100
+        score -= 500
+    # VirtualBox Host-Only default subnet
+    if ip.startswith("192.168.56."):
+        score -= 200
     if ip == "192.168.137.1":
         score += 1000
     elif ip.startswith("192.168.137."):
         score += 900
-    if any(hint in name for hint in _PREFERRED_INTERFACE_HINTS):
+    if default_route_ip and ip == default_route_ip:
+        score += 350
+    if any(hint in name for hint in _WIFI_INTERFACE_HINTS):
+        score += 200
+    elif any(hint in name for hint in _PREFERRED_INTERFACE_HINTS):
         score += 100
     if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("172."):
         score += 10
@@ -80,13 +128,15 @@ def _interface_score(iface: str, ip: str) -> int:
 
 def get_hotspot_ip() -> str:
     """
-    Detect the IP address students should use to reach OptiLearn.
+    Detect the IP address students should use to reach LearnLocal.
 
     Priority:
       1. Windows Mobile Hotspot gateway/subnet, especially 192.168.137.1
-      2. Active private LAN addresses on physical-looking interfaces
-      3. Fallback to 192.168.137.1
+      2. Active Wi-Fi / default-route private LAN address
+      3. Other active private LAN addresses on physical-looking interfaces
+      4. Fallback to 192.168.137.1
     """
+    default_route_ip = _get_default_route_ip()
     candidates: list[tuple[int, str, str]] = []
     try:
         for iface, addrs in psutil.net_if_addrs().items():
@@ -98,7 +148,7 @@ def get_hotspot_ip() -> str:
                 ip = getattr(addr, "address", "")
                 if not _is_ipv4_private_candidate(ip):
                     continue
-                candidates.append((_interface_score(iface, ip), ip, iface))
+                candidates.append((_interface_score(iface, ip, default_route_ip), ip, iface))
     except Exception as exc:
         logger.warning("IP detection could not complete: {}", exc)
 
@@ -113,16 +163,57 @@ def get_hotspot_ip() -> str:
 
 
 def get_cached_hotspot_ip() -> str:
-    global _cached_ip
-    if _cached_ip is None:
+    global _cached_ip, _cached_ip_at
+    now = time.monotonic()
+    if _cached_ip is None or (now - _cached_ip_at) > _IP_CACHE_TTL_SECONDS:
         _cached_ip = get_hotspot_ip()
+        _cached_ip_at = now
     return _cached_ip
 
 
 def refresh_ip_cache() -> str:
-    global _cached_ip
+    global _cached_ip, _cached_ip_at
     _cached_ip = None
+    _cached_ip_at = 0.0
     return get_cached_hotspot_ip()
+
+
+def ensure_windows_firewall_ports(ports: list[int]) -> None:
+    """Best-effort: add Windows Firewall allow rules for LAN student access (Public+Private)."""
+    if sys.platform != "win32":
+        return
+    flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+    for port in ports:
+        rule_name = f"LearnLocal TCP {port}"
+        try:
+            check = subprocess.run(
+                ["netsh", "advfirewall", "firewall", "show", "rule", f"name={rule_name}"],
+                capture_output=True,
+                timeout=3,
+                creationflags=flags,
+            )
+            if check.returncode == 0:
+                continue
+            subprocess.run(
+                [
+                    "netsh",
+                    "advfirewall",
+                    "firewall",
+                    "add",
+                    "rule",
+                    f"name={rule_name}",
+                    "dir=in",
+                    "action=allow",
+                    "protocol=TCP",
+                    f"localport={port}",
+                    "profile=any",
+                ],
+                capture_output=True,
+                timeout=3,
+                creationflags=flags,
+            )
+        except Exception:
+            pass
 
 
 def get_server_url() -> str:
