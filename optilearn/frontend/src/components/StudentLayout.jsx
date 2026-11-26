@@ -211,26 +211,26 @@ function Sidebar({ studentId, student, onNavigate }) {
   const [fontDraft, setFontDraft] = useState(() => localStorage.getItem('optilearn_font') || 'default')
   const [fontChoice, setFontChoice] = useState(() => localStorage.getItem('optilearn_font') || 'default')
 
+  const syncFontAttribute = (choice) => {
+    if (choice === 'opendyslexia' || choice === 'geist') {
+      document.documentElement.setAttribute('data-font', choice)
+    } else {
+      document.documentElement.removeAttribute('data-font')
+    }
+  }
+
   useEffect(() => {
     const saved = localStorage.getItem('optilearn_font') || 'default'
     setFontChoice(saved)
     setFontDraft(saved)
-    if (saved === 'opendyslexia') {
-      document.documentElement.setAttribute('data-font', 'opendyslexia')
-    } else {
-      document.documentElement.removeAttribute('data-font')
-    }
+    syncFontAttribute(saved)
   }, [])
 
   const applyFontChoice = (choice) => {
     setFontChoice(choice)
     setFontDraft(choice)
     localStorage.setItem('optilearn_font', choice)
-    if (choice === 'opendyslexia') {
-      document.documentElement.setAttribute('data-font', 'opendyslexia')
-    } else {
-      document.documentElement.removeAttribute('data-font')
-    }
+    syncFontAttribute(choice)
   }
 
   const primaryLinks = useMemo(
@@ -348,6 +348,16 @@ function Sidebar({ studentId, student, onNavigate }) {
                   onChange={() => setFontDraft('default')}
                 />
                 <span>Standard lettering</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface-soft)', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="font-choice"
+                  value="geist"
+                  checked={fontDraft === 'geist'}
+                  onChange={() => setFontDraft('geist')}
+                />
+                <span>Geist, clean modern lettering</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface-soft)', cursor: 'pointer' }}>
                 <input
